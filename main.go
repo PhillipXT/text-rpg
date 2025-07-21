@@ -19,6 +19,15 @@ func main() {
 
     clearScreen(opsys)
     fmt.Printf("Hello %v. Welcome to Eternia.\n", name)
+
+    for {
+        cmd := ""
+        fmt.Println("What do we do now?")
+        fmt.Scanln(&cmd)
+        clearScreen(opsys)
+        fmt.Printf("Okay %v, I'll give that a shot.\n", name)
+        fmt.Println()
+    }
 }
 
 func clearScreen(opsys string) {
