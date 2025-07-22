@@ -1,7 +1,6 @@
 package main
 
 import (
-    "errors"
     "math/rand"
     "os"
     "os/exec"
@@ -10,46 +9,52 @@ import (
     "time"
 )
 
+type portalData struct {
+    id int
+    portalType string
+    direction string
+    dest_room_id int
+}
+
+type roomData struct {
+    desc string
+    portals []portalData
+}
+
 func main() {
 
-    opsys := runtime.GOOS
     rand.Seed(time.Now().UnixNano())
 
     var name string
 
-    clearScreen(opsys)
+    clearScreen()
     fmt.Println("What is your name, brave adventurer?")
     fmt.Scanln(&name)
 
-    clearScreen(opsys)
+    clearScreen()
     fmt.Printf("Hello %v. Welcome to Eternia.\n", name)
 
-    position := 0
+    currentRoom := 1
 
+    //portals := getPortalData()
+    rooms := getRoomData()
+    
     for {
-        cmd := ""
-        roomDesc, err := getRoomData(int(position))
-        if err != nil {
-            fmt.Println("We're not on the map anymore.")
-        }
-        if position == 0 {
-            position = 1
+        viewRoom(rooms[currentRoom])
+        cmd := getCommand()
+        fmt.Printf("%v\n", getResponse(name))
+        fmt.Printf("We will: %v\n", cmd)
+        if currentRoom == 1 {
+            currentRoom = 2
         } else {
-            position = 0
+            currentRoom = 1
         }
-        fmt.Println(roomDesc)
-        fmt.Println()
-        fmt.Println("What do we do now?")
-        fmt.Scanln(&cmd)
-        clearScreen(opsys)
-        fmt.Printf(getResponse(name))
-        fmt.Println()
     }
 }
 
-func clearScreen(opsys string) {
+func clearScreen() {
     var cmd *exec.Cmd
-    switch opsys {
+    switch runtime.GOOS {
     case "windows":
         cmd = exec.Command("cmd", "/c", "cls")
     default:
@@ -72,15 +77,36 @@ func getResponse(name string) string {
     return response
 }
 
-func getRoomData(room int) (string, error) {
-    var desc string
-    switch room {
-    case 0:
-        desc = "You are in a simple room.  There is a desk and chair up against the wall, and a door to the north."
-    case 1:
-        desc = "You are in another room.  There is a bookshelf that is mostly empty. There is a door to the south."
-    default:
-        return "", errors.New("Room id not found")
+func getCommand() string {
+    cmd := ""
+    fmt.Println("What do we do now?")
+    fmt.Scanln(&cmd)
+    clearScreen()
+    return cmd
+}
+
+func getRoomData() (map[int]roomData) {
+    r := make(map[int]roomData)
+    r[1] = roomData {
+        "You are in a simple room.  There is a desk and chair up against the wall, and a door to the north.",
+        []portalData { portalData { 1, "door", "N", 2 },},
     }
-    return desc, nil
+    r[2] = roomData {
+        "You are in another room.  There is a bookshelf that is mostly empty. There is a door to the south.",
+        []portalData { portalData { 1, "door", "S", 1 },},
+    }
+    return r
+}
+
+func getPortalData() map[int]bool {
+    return map[int]bool { 0: false, 1: false, 2: false, }
+}
+
+func viewRoom(room roomData) {
+    fmt.Println(room.desc)
+    fmt.Printf("Visible exits: ")
+    for _, portal := range room.portals {
+        fmt.Printf(portal.direction)
+    }
+    fmt.Println()
 }
