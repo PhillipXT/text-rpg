@@ -32,7 +32,7 @@ func main() {
     fmt.Scanln(&name)
 
     clearScreen()
-    fmt.Printf("Hello %v. Welcome to Eternia.\n", name)
+    fmt.Printf("Hello %v. Welcome to Eternia.\n\n", name)
 
     currentRoom := 1
 
@@ -43,7 +43,7 @@ func main() {
         viewRoom(rooms[currentRoom])
         cmd := getCommand()
         fmt.Printf("%v\n", getResponse(name))
-        fmt.Printf("We will: %v\n", cmd)
+        fmt.Printf("We will: %v\n\n", cmd)
         if currentRoom == 1 {
             currentRoom = 2
         } else {
@@ -79,7 +79,7 @@ func getResponse(name string) string {
 
 func getCommand() string {
     cmd := ""
-    fmt.Println("What do we do now?")
+    fmt.Printf("What do we do now?  ")
     fmt.Scanln(&cmd)
     clearScreen()
     return cmd
@@ -104,9 +104,9 @@ func getPortalData() map[int]bool {
 
 func viewRoom(room roomData) {
     fmt.Println(room.desc)
-    fmt.Printf("Visible exits: ")
+    fmt.Printf("\nVisible exits: ")
     for _, portal := range room.portals {
         fmt.Printf(portal.direction)
     }
-    fmt.Println()
+    fmt.Println("\n")
 }
