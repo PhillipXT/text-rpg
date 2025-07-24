@@ -15,7 +15,6 @@ import (
 type roomData struct {
     desc string
     portals []portalData
-    items []itemData
 }
 
 type portalData struct {
@@ -26,21 +25,23 @@ type portalData struct {
 }
 
 type itemData struct {
-    id int
     name string
-    currentStatus int
-    desc []descriptionData
+    room int
+    status int
+    desc []descData
     action []actionData
 }
 
-type descriptionData struct {
+type descData struct {
     status int
     desc string
 }
 
 type actionData struct {
     action string
+    requiredStatus int
     resultingStatus int
+    desc string
 }
 
 func main() {
@@ -60,14 +61,15 @@ func main() {
 
     //portals := getPortalData()
     rooms := getRoomData()
+    items := getItemData()
     
     for {
         room := rooms[currentRoom]
-        viewRoom(room)
+        viewRoom(currentRoom, room, items)
         fmt.Printf("What do we do now?  ")
         cmd := getCommand()
         clearScreen()
-        r, move := processCommand(room, cmd)
+        r, move := processCommand(room, items, cmd)
         if move {
             currentRoom = r
         }
@@ -110,14 +112,14 @@ func getCommand() string {
     return strings.TrimSuffix(cmd, "\n")
 }
 
-func processCommand(room roomData, cmd string) (int, bool) {
+func processCommand(room roomData, items []itemData, cmd string) (int, bool) {
     switch cmd {
     case "n":
         return 1, true
     case "s":
         return 0, true
     case "smash vase":
-        room.items[0].currentStatus = 1
+        items[0].status = 1
     case "q", "quit":
         os.Exit(0)
     }
@@ -125,36 +127,58 @@ func processCommand(room roomData, cmd string) (int, bool) {
 }
 
 
-func getRoomData() (map[int]roomData) {
-    r := make(map[int]roomData)
-    r[0] = roomData {
+func getRoomData() map[int]roomData {
+    arr := make(map[int]roomData)
+    arr[0] = roomData {
         "You are in a simple room.  There is a desk and chair up against the wall, and a door to the north.",
-        []portalData { portalData { 0, "door", "N", 1 },},
-        []itemData { itemData { 0, "Vase", 0,
-            []descriptionData {
-                descriptionData { 0, "There is a vase on the desk." },
-                descriptionData { 1, "The vase on the desk has been smashed into pieces." }, },
-            []actionData { actionData { "smash", 1 },},
-        }, },
+        []portalData {
+            portalData { 0, "door", "N", 1 },
+        },
     }
-    r[1] = roomData {
+    arr[1] = roomData {
         "You are in another room.  There is a bookshelf that is mostly empty. There is a door to the south.",
-        []portalData { portalData { 0, "door", "S", 0 },},
-        []itemData{},
+        []portalData {
+            portalData { 0, "door", "S", 0 },
+        },
     }
-    return r
+    return arr
+}
+
+func getPortals() map[int]portalData {
+    arr := make(map[int]portalData)
+    return arr
+}
+
+func getItemData() []itemData {
+    
+    arr := [] itemData {}
+
+    arr = append(arr, itemData { "Vase", 0, 0,
+        []descData {
+            descData { 0, "There is a vase on the desk." },
+            descData { 1, "The vase on the desk has been smashed into pieces." },
+        },
+        []actionData {
+            actionData { "smash", 0, 1, "You smash the vase into tiny pieces." },
+            actionData { "smash", 1, 1, "The vase has already been smashed." },
+        },
+    })
+
+    return arr
 }
 
 func getPortalData() map[int]bool {
     return map[int]bool { 0: false, 1: false, 2: false, }
 }
 
-func viewRoom(room roomData) {
+func viewRoom(currentRoom int, room roomData, items []itemData) {
     fmt.Printf(room.desc)
-    for _, item := range room.items {
-        for _, desc := range item.desc {
-            if desc.status == item.currentStatus {
-                fmt.Printf(" " + desc.desc)
+    for _, item := range items {
+        if item.room == currentRoom {
+            for _, desc := range item.desc {
+                if desc.status == item.status {
+                    fmt.Printf(" " + desc.desc)
+                }
             }
         }
     }
