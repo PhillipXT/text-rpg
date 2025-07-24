@@ -12,6 +12,8 @@ import (
     "log"
 )
 
+const maxLineLength = 80
+
 type roomData struct {
     desc string
     portals []portalData
@@ -25,11 +27,11 @@ type portalData struct {
 }
 
 type itemData struct {
-    name string
-    room int
-    status int
-    desc []descData
-    action []actionData
+    name string                 // Simple name for the item
+    room int                    // Current position of the item
+    status int                  // Current status of the item
+    desc []descData             // List of descriptions available
+    action []actionData         // Actions available to be performed
 }
 
 type descData struct {
@@ -69,12 +71,13 @@ func main() {
         fmt.Printf("What do we do now?  ")
         cmd := getCommand()
         clearScreen()
-        r, move := processCommand(room, items, cmd)
-        if move {
-            currentRoom = r
+        message, new_room, did_move := processCommand(room, items, cmd)
+        if did_move {
+            currentRoom = new_room
         }
-        fmt.Println(getResponse(name))
-        fmt.Printf("We will: %v\n\n", cmd)
+        //fmt.Println(getResponse(name))
+        //fmt.Printf("We will: %v\n\n", cmd)
+        fmt.Printf(message + "\n\n")
     }
 }
 
@@ -112,18 +115,25 @@ func getCommand() string {
     return strings.TrimSuffix(cmd, "\n")
 }
 
-func processCommand(room roomData, items []itemData, cmd string) (int, bool) {
+func processCommand(room roomData, items []itemData, cmd string) (string, int, bool) {
     switch cmd {
     case "n":
-        return 1, true
+        return "You go north.", 1, true
     case "s":
-        return 0, true
+        return "You go south.", 0, true
     case "smash vase":
+        var text string
+        for _, action := range items[0].action {
+            if action.requiredStatus == items[0].status {
+                text = action.desc
+            }
+        }
         items[0].status = 1
+        return text, 0, false
     case "q", "quit":
         os.Exit(0)
     }
-    return 0, false
+    return "", 0, false
 }
 
 
@@ -172,21 +182,54 @@ func getPortalData() map[int]bool {
 }
 
 func viewRoom(currentRoom int, room roomData, items []itemData) {
-    fmt.Printf(room.desc)
+    printLine("", strings.Repeat("=", maxLineLength))
+    room_desc := room.desc
     for _, item := range items {
         if item.room == currentRoom {
             for _, desc := range item.desc {
                 if desc.status == item.status {
-                    fmt.Printf(" " + desc.desc)
+                    room_desc += " " + desc.desc
                 }
             }
         }
     }
-    fmt.Println()
-    fmt.Println()
-    fmt.Printf("Visible exits: ")
+    printLine("> ", room_desc)
+    printLine(">", "")
+    printLine(">", "")
+    exits := "Visible exits: "
     for _, portal := range room.portals {
-        fmt.Printf(portal.direction + " ")
+        exits += portal.direction + " "
     }
-    fmt.Printf("\n\n")
+    printLine("> ", exits)
+    printLine("", strings.Repeat("=", maxLineLength))
+    printLine("", "\n\n")
+}
+
+func printLine(prefix string, text string) {
+
+    if len(prefix) + len(text) <= maxLineLength {
+        fmt.Println(prefix + text)
+        return
+    }
+
+    start := 0
+
+    for {
+        end := start + maxLineLength - len(prefix)
+        if end > len(text) {
+            end = len(text)
+        }
+        substring := text[start:end]
+        last_space := strings.LastIndexByte(substring, ' ')
+        if last_space == -1 || end == len(text) {
+            fmt.Println(prefix + substring)
+            start = start + maxLineLength - len(prefix)
+        } else {
+            fmt.Println(prefix + text[start:start + last_space])
+            start = start + last_space + 1
+        }
+        if end >= len(text) {
+            break
+        }
+    }
 }
