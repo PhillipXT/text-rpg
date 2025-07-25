@@ -10,6 +10,8 @@ import (
     "bufio"
     "strings"
     "log"
+    "regexp"
+    "slices"
 )
 
 const maxLineLength = 80
@@ -26,7 +28,7 @@ type roomData struct {
 type portalData struct {
     id int
     portalType string
-    direction string
+    direction []string
     dest_room_id int
 }
 
@@ -85,6 +87,7 @@ func main() {
         viewRoom(currentRoom, room, items)
         fmt.Printf("What do we do now?  ")
         cmd := getCommand()
+        // Really only want to clear the screen if we've moved to a new room
         clearScreen()
         message, new_room, did_move := processCommand(room, items, cmd)
         if did_move {
@@ -131,50 +134,88 @@ func getCommand() string {
 }
 
 func processCommand(room roomData, items []itemData, cmd string) (string, int, bool) {
-    switch cmd {
-    case "n":
-        return "You go north.", 2, true
-    case "s":
-        return "You go south.", 1, true
-    case "i":
+
+    cmd = strings.ToLower(cmd)
+
+    // Directions could be programmatically determined from the portals arrays
+    // in roomData.  That way, the list could be dynamically generated.
+    directions := []string {
+        "north", "n",
+        "south", "s",
+        "east", "e",
+        "west", "w",
+        "up", "u",
+        "down", "d",
+    }
+
+    quit := []string { "quit", "q" }
+
+    reg, err := regexp.Compile("[^a-z ]+")
+    if err != nil {
+        log.Printf("Error in regexp: %w", err)
+        return "", 0, false
+    }
+
+    cmd = reg.ReplaceAllString(cmd, "")
+    tokens := strings.Fields(cmd)
+
+    /*
+    for i, token := range tokens {
+        fmt.Printf("Token %v: [%v]\n", i, token)
+    }
+    fmt.Println("Press a key to continue...")
+    fmt.Scanln()
+    */
+
+    if slices.Contains(directions, tokens[0]) {
+        for _, portal := range room.portals {
+            if slices.Contains(portal.direction, tokens[0]) {
+                return fmt.Sprintf("You go %v", portal.direction[0]), portal.dest_room_id, true
+            }
+        }
+        return "You can't go that direction.", 0, false
+    } else if tokens[0] == "i" {
         fmt.Println("Your backpack contains:")
         for _, item := range items {
             if item.room == 0 {
                 fmt.Println("    " + item.name)
             }
         }
-    case "smash vase":
-        var text string
-        for _, action := range items[0].action {
-            if action.requiredStatus == items[0].status {
-                text = action.desc
-                for _, trigger := range action.triggers {
-                    if trigger.name == "makeVisible" {
-                        items[1].makeVisible()
+    } else if tokens[0] == "smash" {
+        if tokens[1] == "vase" {
+            var text string
+            for _, action := range items[0].action {
+                if action.requiredStatus == items[0].status {
+                    text = action.desc
+                    for _, trigger := range action.triggers {
+                        if trigger.name == "makeVisible" {
+                            items[1].makeVisible()
+                        }
                     }
                 }
             }
+            return text, 0, false
         }
-        return text, 0, false
-    case "take key":
-        if items[1].visible == false {
-            return "I don't see a key anywhere.", 0, false
-        }
-        items[1].room = 0
-        var text string
-        for _, action := range items[1].action {
-            if action.requiredStatus == items[1].status {
-                text = action.desc
+    } else if tokens[0] == "take" {
+        if tokens[1] == "key" {
+            if items[1].visible == false {
+                return "I don't see a key anywhere.", 0, false
             }
+            items[1].room = 0
+            var text string
+            for _, action := range items[1].action {
+                if action.requiredStatus == items[1].status {
+                    text = action.desc
+                }
+            }
+            items[0].status = 1
+            return text, 0, false
         }
-        items[0].status = 1
-        return text, 0, false
-    case "q", "quit":
+    } else if slices.Contains(quit, tokens[0]) {
         os.Exit(0)
     }
     return "", 0, false
 }
-
 
 func getRoomData() map[int]roomData {
     arr := make(map[int]roomData)
@@ -185,13 +226,13 @@ func getRoomData() map[int]roomData {
     arr[1] = roomData {
         "You are in a simple room.  There is a desk and chair up against the wall, and a door to the north.",
         []portalData {
-            portalData { 0, "door", "N", 2 },
+            portalData { 0, "door", []string{ "north", "n" }, 2 },
         },
     }
     arr[2] = roomData {
         "You are in another room.  There is a bookshelf that is mostly empty. There is a door to the south.",
         []portalData {
-            portalData { 0, "door", "S", 1 },
+            portalData { 0, "door", []string{ "south", "s" }, 1 },
         },
     }
     return arr
@@ -255,7 +296,7 @@ func viewRoom(currentRoom int, room roomData, items []itemData) {
     printLine(">", "")
     exits := "Visible exits: "
     for _, portal := range room.portals {
-        exits += portal.direction + " "
+        exits += portal.direction[1] + " "
     }
     printLine("> ", exits)
     printLine("", strings.Repeat("=", maxLineLength))
