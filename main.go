@@ -157,6 +157,9 @@ func processCommand(room roomData, items []itemData, cmd string) (string, int, b
         }
         return text, 0, false
     case "take key":
+        if items[1].visible == false {
+            return "I don't see a key anywhere.", 0, false
+        }
         items[1].room = 0
         var text string
         for _, action := range items[1].action {
