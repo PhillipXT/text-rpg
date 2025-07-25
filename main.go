@@ -14,6 +14,10 @@ import (
 
 const maxLineLength = 80
 
+type visible interface {
+    makeVisible()
+}
+
 type roomData struct {
     desc string
     portals []portalData
@@ -35,6 +39,10 @@ type itemData struct {
     action []actionData         // Actions available to be performed
 }
 
+func (i *itemData) makeVisible() {
+    i.visible = true
+}
+
 type descData struct {
     status int
     desc string
@@ -45,6 +53,12 @@ type actionData struct {
     requiredStatus int
     resultingStatus int
     desc string
+    triggers []triggerData
+}
+
+type triggerData struct {
+    name string
+    param string
 }
 
 func main() {
@@ -127,6 +141,11 @@ func processCommand(room roomData, items []itemData, cmd string) (string, int, b
         for _, action := range items[0].action {
             if action.requiredStatus == items[0].status {
                 text = action.desc
+                for _, trigger := range action.triggers {
+                    if trigger.name == "makeVisible" {
+                        items[1].makeVisible()
+                    }
+                }
             }
         }
         items[0].status = 1
@@ -170,8 +189,12 @@ func getItemData() []itemData {
             descData { 1, "The vase on the desk has been smashed into pieces." },
         },
         []actionData {
-            actionData { "smash", 0, 1, "You smash the vase into tiny pieces." },
-            actionData { "smash", 1, 1, "The vase has already been smashed." },
+            actionData { "smash", 0, 1, "You smash the vase into tiny pieces.",
+                []triggerData {
+                    triggerData { "makeVisible", "key" },
+                },
+            },
+            actionData { "smash", 1, 1, "The vase has already been smashed.", nil },
         },
     })
 
@@ -180,12 +203,16 @@ func getItemData() []itemData {
             descData { 0, "There is a key lying amongst the shards of the vase." },
         },
         []actionData {
-            actionData { "look", 0, 1, "This key is metallic and sturdy, and looks like it would open a door." },
-            actionData { "take", 0, 1, "You take the key." },
+            actionData { "look", 0, 1, "This key is metallic and sturdy, and looks like it would open a door.", nil },
+            actionData { "take", 0, 1, "You take the key.", nil },
         },
     })
 
     return arr
+}
+
+func makeVisible(item string) {
+    fmt.Println("Making something visible...")
 }
 
 func getPortalData() map[int]bool {
