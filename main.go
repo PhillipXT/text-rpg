@@ -166,6 +166,10 @@ func processCommand(room roomData, items []itemData, cmd string) (string, int, b
     fmt.Scanln()
     */
 
+    if len(tokens) == 0 {
+        return "Stop wasting my time and give me something to do.", 0, false
+    }
+
     if slices.Contains(directions, tokens[0]) {
         for _, portal := range room.portals {
             if slices.Contains(portal.direction, tokens[0]) {
@@ -181,7 +185,9 @@ func processCommand(room roomData, items []itemData, cmd string) (string, int, b
             }
         }
     } else if tokens[0] == "smash" {
-        if tokens[1] == "vase" {
+        if len(tokens) == 1 {
+            return "Smash what?", 0, false
+        } else if tokens[1] == "vase" {
             var text string
             for _, action := range items[0].actionList {
                 if action.requiredStatus == items[0].status {
@@ -198,7 +204,9 @@ func processCommand(room roomData, items []itemData, cmd string) (string, int, b
             return text, 0, false
         }
     } else if tokens[0] == "take" {
-        if tokens[1] == "key" {
+        if len(tokens) == 1 {
+            return "Take what?", 0, false
+        } else if tokens[1] == "key" {
             if items[1].visible == false {
                 return "I don't see a key anywhere.", 0, false
             }
