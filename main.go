@@ -74,7 +74,7 @@ func main() {
     clearScreen()
     fmt.Printf("Hello %v. Welcome to Eternia.\n\n", name)
 
-    currentRoom := 0
+    currentRoom := 1
 
     //portals := getPortalData()
     rooms := getRoomData()
@@ -133,9 +133,16 @@ func getCommand() string {
 func processCommand(room roomData, items []itemData, cmd string) (string, int, bool) {
     switch cmd {
     case "n":
-        return "You go north.", 1, true
+        return "You go north.", 2, true
     case "s":
-        return "You go south.", 0, true
+        return "You go south.", 1, true
+    case "i":
+        fmt.Println("Your backpack contains:")
+        for _, item := range items {
+            if item.room == 0 {
+                fmt.Println("    " + item.name)
+            }
+        }
     case "smash vase":
         var text string
         for _, action := range items[0].action {
@@ -146,6 +153,15 @@ func processCommand(room roomData, items []itemData, cmd string) (string, int, b
                         items[1].makeVisible()
                     }
                 }
+            }
+        }
+        return text, 0, false
+    case "take key":
+        items[1].room = 0
+        var text string
+        for _, action := range items[1].action {
+            if action.requiredStatus == items[1].status {
+                text = action.desc
             }
         }
         items[0].status = 1
@@ -160,15 +176,19 @@ func processCommand(room roomData, items []itemData, cmd string) (string, int, b
 func getRoomData() map[int]roomData {
     arr := make(map[int]roomData)
     arr[0] = roomData {
+        "This is a really nice backpack, with lots of space to put things.", nil,
+    }
+
+    arr[1] = roomData {
         "You are in a simple room.  There is a desk and chair up against the wall, and a door to the north.",
         []portalData {
-            portalData { 0, "door", "N", 1 },
+            portalData { 0, "door", "N", 2 },
         },
     }
-    arr[1] = roomData {
+    arr[2] = roomData {
         "You are in another room.  There is a bookshelf that is mostly empty. There is a door to the south.",
         []portalData {
-            portalData { 0, "door", "S", 0 },
+            portalData { 0, "door", "S", 1 },
         },
     }
     return arr
@@ -183,7 +203,7 @@ func getItemData() []itemData {
     
     arr := []itemData{}
 
-    arr = append(arr, itemData { "vase", 0, 0, true,
+    arr = append(arr, itemData { "vase", 1, 0, true,
         []descData {
             descData { 0, "There is a vase on the desk." },
             descData { 1, "The vase on the desk has been smashed into pieces." },
@@ -198,7 +218,7 @@ func getItemData() []itemData {
         },
     })
 
-    arr = append(arr, itemData { "key", 0, 0, false,
+    arr = append(arr, itemData { "key", 1, 0, false,
         []descData {
             descData { 0, "There is a key lying amongst the shards of the vase." },
         },
@@ -209,10 +229,6 @@ func getItemData() []itemData {
     })
 
     return arr
-}
-
-func makeVisible(item string) {
-    fmt.Println("Making something visible...")
 }
 
 func getPortalData() map[int]bool {
