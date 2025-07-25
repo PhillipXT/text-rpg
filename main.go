@@ -16,8 +16,12 @@ import (
 
 const maxLineLength = 80
 
-type visible interface {
+type iVisible interface {
     makeVisible()
+}
+
+type iPrintable interface {
+    printData()
 }
 
 type roomData struct {
@@ -43,6 +47,10 @@ type itemData struct {
 
 func (i *itemData) makeVisible() {
     i.visible = true
+}
+
+func (item itemData) printData() {
+    fmt.Printf("Item: [%v] Status:[%v] Room: [%v] Visible: [%v]\n", item.name, item.status, item.room, item.visible)
 }
 
 type statusItem struct {
@@ -88,7 +96,7 @@ func main() {
         fmt.Printf("What do we do now?  ")
         cmd := getCommand()
         clearScreen()
-        message, new_room, did_move := processCommand(room, items, cmd)
+        message, new_room, did_move := processCommand(currentRoom, room, items, cmd)
         if did_move {
             currentRoom = new_room
         }
@@ -132,7 +140,7 @@ func getCommand() string {
     return strings.TrimSuffix(cmd, "\n")
 }
 
-func processCommand(room roomData, items []itemData, cmd string) (string, int, bool) {
+func processCommand(currentRoom int, room roomData, items []itemData, cmd string) (string, int, bool) {
 
     cmd = strings.ToLower(cmd)
 
@@ -184,6 +192,30 @@ func processCommand(room roomData, items []itemData, cmd string) (string, int, b
                 fmt.Println("    " + item.name)
             }
         }
+    } else if tokens[0] == "look" {
+        if len(tokens) == 1 {
+            return "Look at what?", 0, false
+        } else {
+            item := itemData{}
+            for _, i := range items {
+                if i.name == tokens[1] {
+                    item = i
+                    break
+                }
+            }
+            if item.name != "" {
+                if !item.visible {
+                    return fmt.Sprintf("I don't see a %v anywhere.", item.name), 0, false
+                }
+                for _, action := range item.actionList {
+                    if action.action == tokens[0] && action.requiredStatus == item.status {
+                        item.status = action.resultingStatus
+                        return action.desc, 0, false
+                    }
+                }
+            }
+            return "I don't see anything special about that.", 0, false
+        }
     } else if tokens[0] == "smash" {
         if len(tokens) == 1 {
             return "Smash what?", 0, false
@@ -207,7 +239,7 @@ func processCommand(room roomData, items []itemData, cmd string) (string, int, b
         if len(tokens) == 1 {
             return "Take what?", 0, false
         } else if tokens[1] == "key" {
-            if items[1].visible == false {
+            if items[1].visible == false || items[1].room != currentRoom {
                 return "I don't see a key anywhere.", 0, false
             }
             items[1].room = 0
@@ -217,8 +249,32 @@ func processCommand(room roomData, items []itemData, cmd string) (string, int, b
                     text = action.desc
                 }
             }
-            items[0].status = 1
+            items[1].status = 1
             return text, 0, false
+        }
+    } else if tokens[0] == "drop" {
+        if len(tokens) == 1 {
+            return "Drop what?", 0, false
+        } else {
+            item := itemData{}
+            for _, i := range items {
+                if i.name == tokens[1] && i.room == 0 {
+                    item = i
+                    break
+                }
+            }
+            //fmt.Printf("Item: [%v], Action: [%v]\n", item.name, tokens[0])
+            if item.name != "" {
+                for _, action := range item.actionList {
+                    if action.action == tokens[0] {
+                        items[1].room = currentRoom
+                        items[1].status = action.resultingStatus
+                        fmt.Println(item)
+                        return action.desc, 0, false
+                    }
+                }
+            }
+            return "I don't have an item like that.", 0, false
         }
     } else if slices.Contains(quit, tokens[0]) {
         os.Exit(0)
@@ -267,6 +323,10 @@ func getItemData() []itemData {
                     triggerItem { "makeVisible", "key" },
                 },
             },
+            actionItem { "look", 0, 0, "This drab coloured vase looks empty.", nil },
+            actionItem { "look", 1, 1, "It's not much of a vase any more. Shards of it are all over the table.", nil },
+            actionItem { "examine", 0, 0, "It's too dark to see inside, and too narrow for your hand, but you can hear something jingle inside.", nil },
+            actionItem { "examine", 1, 1, "There's really nothing to examine anymore.", nil },
             actionItem { "smash", 1, 1, "The vase has already been smashed.", nil },
         },
     })
@@ -274,10 +334,14 @@ func getItemData() []itemData {
     arr = append(arr, itemData { "key", 1, 0, false,
         []statusItem {
             statusItem { 0, "There is a key lying amongst the shards of the vase." },
+            statusItem { 1, "The key is in your backpack." },
+            statusItem { 2, "There is a key on the ground." },
         },
         []actionItem {
-            actionItem { "look", 0, 1, "This key is metallic and sturdy, and looks like it would open a door.", nil },
+            actionItem { "look", 0, 0, "This key is metallic and sturdy, and looks like it would open a door.", nil },
             actionItem { "take", 0, 1, "You take the key.", nil },
+            actionItem { "take", 2, 1, "You take the key.", nil },
+            actionItem { "drop", 1, 2, "You drop the key on the ground.", nil },
         },
     })
 
@@ -292,6 +356,7 @@ func viewRoom(currentRoom int, room roomData, items []itemData) {
     printLine("", strings.Repeat("=", maxLineLength))
     room_desc := room.desc
     for _, item := range items {
+        item.printData()
         if item.room == currentRoom && item.visible {
             for _, status := range item.statusList {
                 if status.status == item.status {
