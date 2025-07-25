@@ -30,6 +30,7 @@ type itemData struct {
     name string                 // Simple name for the item
     room int                    // Current position of the item
     status int                  // Current status of the item
+    visible bool                // Whether or not the item can be seen
     desc []descData             // List of descriptions available
     action []actionData         // Actions available to be performed
 }
@@ -161,9 +162,9 @@ func getPortals() map[int]portalData {
 
 func getItemData() []itemData {
     
-    arr := [] itemData {}
+    arr := []itemData{}
 
-    arr = append(arr, itemData { "Vase", 0, 0,
+    arr = append(arr, itemData { "vase", 0, 0, true,
         []descData {
             descData { 0, "There is a vase on the desk." },
             descData { 1, "The vase on the desk has been smashed into pieces." },
@@ -171,6 +172,16 @@ func getItemData() []itemData {
         []actionData {
             actionData { "smash", 0, 1, "You smash the vase into tiny pieces." },
             actionData { "smash", 1, 1, "The vase has already been smashed." },
+        },
+    })
+
+    arr = append(arr, itemData { "key", 0, 0, false,
+        []descData {
+            descData { 0, "There is a key lying amongst the shards of the vase." },
+        },
+        []actionData {
+            actionData { "look", 0, 1, "This key is metallic and sturdy, and looks like it would open a door." },
+            actionData { "take", 0, 1, "You take the key." },
         },
     })
 
@@ -185,7 +196,7 @@ func viewRoom(currentRoom int, room roomData, items []itemData) {
     printLine("", strings.Repeat("=", maxLineLength))
     room_desc := room.desc
     for _, item := range items {
-        if item.room == currentRoom {
+        if item.room == currentRoom && item.visible {
             for _, desc := range item.desc {
                 if desc.status == item.status {
                     room_desc += " " + desc.desc
