@@ -36,6 +36,7 @@ type portalData struct {
     dest_room_id int
 }
 
+// Add some flags here: canTake, canBreak, etc. to save on adding actions
 type itemData struct {
     name string                 // Simple name for the item
     room int                    // Current position of the item
@@ -100,7 +101,7 @@ func main() {
         if did_move {
             currentRoom = new_room
         }
-        //fmt.Println(getResponse(name))
+        fmt.Println(getResponse(name))
         //fmt.Printf("We will: %v\n\n", cmd)
         fmt.Printf(message + "\n\n")
     }
@@ -119,16 +120,12 @@ func clearScreen() {
 }
 
 func getResponse(name string) string {
-    var response string
-    switch rand.Intn(3) {
-    case 0:
-        response = fmt.Sprintf("Okay %v, I'll give that a shot.\n", name)
-    case 1:
-        response = "Are you serious? Hey, it's your funeral.\n"
-    case 2:
-        response = "Ugh, do we have to?\n"
+    responses := map[int]string {
+        0: fmt.Sprintf("Okay %v, I'll give that a shot.\n", name),
+        1: "Are you serious? Hey, it's your funeral.\n",
+        2: "Ugh, do we have to?\n",
     }
-    return response
+    return responses[rand.Intn(len(responses))]
 }
 
 func getCommand() string {
@@ -217,6 +214,7 @@ func processCommand(currentRoom int, room roomData, items []itemData, cmd string
             return "I don't see anything special about that.", 0, false
         }
     } else if tokens[0] == "smash" {
+        // BUG:  Make sure we're in the same room as the object first
         if len(tokens) == 1 {
             return "Smash what?", 0, false
         } else if tokens[1] == "vase" {
