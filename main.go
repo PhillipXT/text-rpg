@@ -24,6 +24,10 @@ type iPrintable interface {
     printData()
 }
 
+type Player struct {
+    name string
+}
+
 type roomData struct {
     desc string
     portals []portalData
@@ -76,14 +80,22 @@ func main() {
 
     rand.Seed(time.Now().UnixNano())
 
-    var name string
+    player := Player{}
 
     clearScreen()
-    fmt.Println("What is your name, brave adventurer?")
-    fmt.Scanln(&name)
+    for {
+        player.name = getPlayerName()
+        if ok, errors := validatePlayerName(player.name); ok {
+            break
+        } else {
+            for _, err := range errors {
+                fmt.Println(err)
+            }
+        }
+    }
 
     clearScreen()
-    fmt.Printf("Hello %v. Welcome to Eternia.\n\n", name)
+    displayWelcome(player.name)
 
     currentRoom := 1
 
@@ -101,10 +113,37 @@ func main() {
         if did_move {
             currentRoom = new_room
         }
-        fmt.Println(getResponse(name))
+        fmt.Println(getResponse(player.name))
         //fmt.Printf("We will: %v\n\n", cmd)
         fmt.Printf(message + "\n\n")
     }
+}
+
+func displayWelcome(name string) {
+    fmt.Printf("Hello %v. Welcome to Eternia.\n\n", name)
+}
+
+func getPlayerName() string {
+
+    scanner := bufio.NewScanner(os.Stdin)
+    fmt.Printf("What is your name, brave adventurer?  (5 to 12 characters)  ")
+    scanner.Scan()
+    name := scanner.Text()
+
+    return name
+}
+
+func validatePlayerName(name string) (bool, []string) {
+    var errors []string
+    ok := true
+    if len(name) < 5 {
+        errors = append(errors, "Your name must be at least 5 characters.")
+        ok = false
+    } else if len(name) > 12 {
+        errors = append(errors, "Your name must be less than 12 characters.")
+        ok = false
+    }
+    return ok, errors
 }
 
 func clearScreen() {
