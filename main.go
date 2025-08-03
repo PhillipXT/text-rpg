@@ -83,16 +83,7 @@ func main() {
     player := Player{}
 
     clearScreen()
-    for {
-        player.name = getPlayerName()
-        if ok, errors := validatePlayerName(player.name); ok {
-            break
-        } else {
-            for _, err := range errors {
-                fmt.Println(err)
-            }
-        }
-    }
+    getPlayerName(&player)
 
     clearScreen()
     displayWelcome(player.name)
@@ -121,29 +112,6 @@ func main() {
 
 func displayWelcome(name string) {
     fmt.Printf("Hello %v. Welcome to Eternia.\n\n", name)
-}
-
-func getPlayerName() string {
-
-    scanner := bufio.NewScanner(os.Stdin)
-    fmt.Printf("What is your name, brave adventurer?  (5 to 12 characters)  ")
-    scanner.Scan()
-    name := scanner.Text()
-
-    return name
-}
-
-func validatePlayerName(name string) (bool, []string) {
-    var errors []string
-    ok := true
-    if len(name) < 5 {
-        errors = append(errors, "Your name must be at least 5 characters.")
-        ok = false
-    } else if len(name) > 12 {
-        errors = append(errors, "Your name must be less than 12 characters.")
-        ok = false
-    }
-    return ok, errors
 }
 
 func clearScreen() {
